@@ -1,38 +1,53 @@
 <?php
 namespace App\Http\Controllers;
-use App\Models\Subcategory;
+use App\Models\subcategory;
 
 use Illuminate\Http\Request;
 
-class SubcategoryController extends Controller
+class subcategoryController extends Controller
 {
     
     public function index()
     {
         
-        $subcategories = Subcategory::latest()->paginate(10);
-        return view('subcategory.index',compact('subcategories'));
+        $categories = Subcategory::latest()->paginate(10);
+        return view('subcategory.index',compact('categories'));
     }
     
     
     
     public function create()
     {
-        return view('subcategory.create');
+        return view('subcategory.index');
     }
+
+    
 
     public function store(Request $request)
     {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'parentCategory' => 'nullable|string',
-            'totalCourse' => 'nullable',
-        ]);
+       $request->validate([
+        'title' => 'required|string|max:255',
+        'image' => 'image|mimes:jpeg,gif,png,jpg',
+       
+       ]);
 
-        Subcategory::create($request->all());
+       $subcategory         = new Subcategory();
+       $subcategory->title   = $request->title;
+       if ($request->hasFile('image')) {
+            $ext = $request->file('image')->extension();
+            $final_name = time().'-'.uniqid().'-'.'image'.'.'.$ext;
 
-        return redirect()->route('subcategory.index')->with('success', 'SUb Category created successfully');
+            $request->file('image')->move(public_path('subcategory/'), $final_name);
+
+            $subcategory->image = $final_name;
+        }
+       
+       
+       $subcategory->save();
+
+       return redirect()->back()->with('success', 'You have add new subcategory');
     }
+
 
     public function edit(Subcategory $subcategory)
     {
@@ -41,21 +56,46 @@ class SubcategoryController extends Controller
 
     public function update(Request $request, Subcategory $subcategory)
     {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'parentCategory' => 'nullable|string',
-            'totalCourse' => 'nullable',
+        
+            $request->validate([
+                'title' => 'required|string|max:255',
+                'image' => 'image|mimes:jpeg,gif,png,jpg',
+               
         ]);
+        
+        $subcategory->title   = $request->title;
+        if ($request->hasFile('image')) {
+            if ($subcategory->image != null) {
+                    unlink(public_path('subcategory/'.$subcategory->image));
+            }
+            $ext = $request->file('image')->extension();
+            $final_name = time().'-'.uniqid().'-'.'image'.'.'.$ext;
+    
+            $request->file('image')->move(public_path('subcategory/'), $final_name);
+    
+            $subcategory->image = $final_name;
+        }
 
-        $subcategory->update($request->all());
-
-        return redirect()->route('subcategory.index')->with('success', 'Sub Category updated successfully');
+      
+        $subcategory->update();
+        
+        return redirect()->route('subcategory.index')->with('success', 'subcategory updated successfully');
     }
+
+   
 
     public function destroy(Subcategory $subcategory)
     {
-        $subcategory->delete();
+       
+        
+       if ($subcategory->image != null) {
+                unlink(public_path('subcategory/'.$subcategory->image));
+        }
+       $subcategory->delete();
 
-        return redirect()->route('subcategory.index')->with('success', 'Sub Category deleted successfully');
+       return redirect()->back()->with('success', 'You have deleted the subcategory');
+
+
+        
     }
 }
